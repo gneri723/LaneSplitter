@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Lane Splitter</title>
+	<style type="text/css">
+	html, body{
+		font-size: 30px;
+		font-family: Verdana;
+		margin: 0 auto;
+		color: red;
+		background-color: #000;
+	}
+	.intro{
+		margin-top: 10%;
+	}
+	p{
+		text-align: center;
+		font-weight: bold;
+		text-shadow: 2px 2px rgba(0,0,0,.5);
+		max-width: 650px;
+		margin: 0 auto;
+		margin-bottom: 5%;
+	}
+	h1{
+		font-size: 2em;
+		text-align: center;
+		width: 100%;
+		text-shadow: 5px 5px rgba(0,0,0,.5);
+	}
+	.button{
+		width: 300px;
+		height: 100px;
+		line-height: 100px;
+		font-size: 50px;
+		margin: 0 auto;
+		margin-bottom: 5%;
+		padding: .5% 2%;
+		background-color: black;
+		color: white;
+		border-radius: 30px;
+		cursor: pointer;
+		text-align: center;
+		border: 1px solid #fff;
+	}
+	.button:hover{
+		background-color: red;
+	}
+	#biker{
+		position: absolute;
+		top: 100px;
+		left: 100px;
+		width: 60px;
+		height: 30px;
+		background-image: url('images/biker.png');
+	}
+	#stage{
+		position: relative;
+		border: 1px solid black;
+		height: 890px;
+		background-repeat: repeat-x;
+		background-color: #000;
+		background-position: 0px 0px;
+		overflow: hidden;
+	}
+	#road{
+		width: 100%;
+		position: absolute;
+		top:250px;
+		left: 0;
+		height: 395px;
+		display: none;
+		background-image: url(images/road.jpg);
+		border-top: 5px solid #fff;
+		border-bottom: 5px solid #fff;
+	}
+	.score{
+		display: none;
+		margin: 2%;
+	}
+	.enemy{
+		position: absolute;
+		top: 100px;
+		left: 100px;
+		height: 60px;
+		/*background-color: yellow;*/
+	}
+	.enemy.car1{
+		background-image: url('images/car1.png');
+		width: 118px;
+	}
+	.enemy.car2{
+		background-image: url('images/car2.png');
+		width: 104px;
+	}
+	.enemy.scar1{
+		background-image: url('images/scar1.png');
+		width: 129px;
+	}
+	.enemy.scar2{
+		background-image: url('images/scar2.png');
+		width: 122px;
+	}
+	.enemy.truck1{
+		background-image: url('images/truck1.png');
+		width: 136px;
+	}
+	.enemy.truck2{
+		background-image: url('images/truck2.png');
+		width: 117px;
+	}
+	.enemy.semi1{
+		background-image: url('images/semi1.png');
+		width: 354px;
+		height: 80px;
+	}
+	.enemy.semi2{
+		background-image: url('images/semi2.png');
+		width: 255px;
+		height: 80px;
+	}
+	.enemy.police{
+		background-image: url('images/police.png');
+		width: 131px;
+	}
+	.enemy.taxi{
+		background-image: url('images/taxi.png');
+		width: 132px;
+	}
+	</style>
+</head>
+<body>
+	<div id="stage">
+		<div class="score">0</div>
+		<div id="road"><div id="biker"></div>
+	</div>
+	<!-- starting stuff -->
+	<div class="intro">
+		<h1>Lane Splitter!</h1>
+		<p>Dodge the cagers to avoid crashing!<br>
+			Move with arrow keys/ASWD and use spacebar to brake. Hold "Shift" key and move with arrows to speed up.
+		</p>
+		<div class="button start">Start Game</div>
+	</div>
+</div>
+<!-- jQuery goes here -->
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<!-- jQuery plugins go here -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.spritely/0.6.8/jquery.spritely.min.js"></script>
+<script>
+//custom script
+//global variables
+var biker = $('#biker'),
+stage = $('#stage'),
+gameRunning = true,
+speed = 2,
+dir = {
+	up:false,
+	down:false,
+	left:false,
+	right:false
+}, //represents the direction the user wants to move the bike
+score = 0;
+var rev = new Audio('sounds/bikerev.mp3');
+var sound = true;
+$('.start').click(startGame);
+
+function startGame (){
+	playSound(rev);
+	gameRunning = true;
+	score = 0;
+	$('.score').text(score);
+	$('#road').pan({fps: 30, speed: 40, dir: 'left'});
+	biker.css({top:100,left:100});
+	$('#stage').css({'background-color':'lightgreen'})
+	//setTimeout(gameLoop, 1000/30); //30 fps
+	theLoop = window.requestAnimationFrame(gameLoop); //request the next frame
+	createEnemyInt = setInterval(createEnemy, 500);
+	$('#biker, #road, .score').show();
+	$('.intro').hide();
+} //end startGame ()
+
+function playSound  (track){
+//track is the variable that stores the sound
+	if(sound){
+	var tempSound = track;
+	tempSound.play();
+	}
+}//end playSound()
+
+//event listeners:
+$(document).keydown( function(e) {
+	//e.which = which key was pressed
+	//arrows-> up:38 down:40 left:37 right:39
+	//aswd movement -> w:87 s:83 a:65 d:68
+	if (gameRunning) {
+
+		if (e.which == 38 || e.which == 87) {
+			//up direction is desired:
+			dir.up = true;
+		}
+
+		if (e.which == 40 || e.which == 83) {
+			//down direction is desired:
+			dir.down = true;
+		}
+
+		if (e.which == 37 || e.which == 65) {
+			dir.left = true;
+		}
+
+		if (e.which == 39 || e.which == 68) {
+			dir.right = true;
+		}
+
+		//press shift to go faster
+		if (e.which == 16) {
+			speed = 5;
+		}
+
+		//spacebar:
+		if (e.which == 32) {
+			speed = -5;
+		}
+	}
+
+}) //end keydown ()
+
+$(document).keyup( function(e) {
+	//e.which = which key was pressed
+	//arrows-> up:38 down:40 left:37 right:39
+	//aswd movement -> w:87 s:83 a:65 d:68
+
+	if (e.which == 38 || e.which == 87) {
+		//up direction is desired:
+		dir.up = false;
+	}
+
+	if (e.which == 40 || e.which == 83) {
+		//down direction is desired:
+		dir.down = false;
+	}
+
+	if (e.which == 37 || e.which == 65) {
+		dir.left = false;
+	}
+
+	if (e.which == 39 || e.which == 68) {
+		dir.right = false;
+	}
+
+	//press shift to go faster
+	if (e.which == 16) {
+		speed = 2;
+	}
+
+	//spacebar:
+	if (e.which == 32) {
+		speed = 2;
+	}
+
+}) //end keyup ()
+
+//gameLoop function
+function gameLoop () {
+	//if nothing is pressed:
+	var newTop = 0; //adding to the value of our current biker position
+	var newLeft = 0; //adding to the value of our current biker position
+
+	if (dir.up) {
+		newTop -= speed;
+	}
+
+	if (dir.down) {
+		newTop += speed;
+	}
+
+	if (dir.left) {
+		newLeft -= speed;
+	}
+
+	if (dir.right) {
+		newLeft += speed;
+	}
+
+	var bTop = biker.position().top; //top value of biker
+	var bLeft = biker.position().left; //left value of biker
+	var bHeight = 30; //static value
+	var bWidth = 60; //non static looks like: biker.height();
+	var sHeight = $('#road').height();
+	var sWidth = $('#road').width();
+
+	//TODO: check boundaries before applying CSS for movement
+	if (bTop+newTop < 0) {
+		//check against top boundary
+		newTop = 0;
+		newTop -= bTop; //remaining distance between biker top and stage 0
+	}
+
+	if (bLeft + newLeft < 0 ) {
+		//left wall
+		newLeft = 0;
+		newLeft -= bLeft;
+	}
+
+	if (bTop + newTop + bHeight > sHeight) {
+		//check against bottom (since wall is dynamic we need to know the current height of the stage)
+		newTop = 0;
+		newTop += (sHeight - bTop - bHeight);
+		//aligns bottom of biker to bottom of stage
+
+	}
+
+	if (bLeft + newLeft + bWidth > sWidth) {
+		newLeft = 0;
+		newLeft += (sWidth - bWidth - bLeft);
+
+	}
+
+
+	biker.css({top:'+=' + newTop, left:'+=' + newLeft});
+
+
+	//enemy vs character
+	$('.enemy').each( function() {
+		if (recthit(biker, $(this))) {
+			//remove enemy not biker
+			$(this).remove();
+			biker.hide(); 
+			//game over!
+			gameOver();
+		}
+
+	}) //end each ()
+
+	//setTimeout(gameLoop, 1000/30); //30 fps
+	if (gameRunning) {
+		theLoop = window.requestAnimationFrame(gameLoop); //request the next frame
+	}
+} //end gameLoop ()
+
+var	theLoop = window.requestAnimationFrame(gameLoop); //request the next frame
+
+function recthit(rectone, recttwo) {
+	//console.log('recthit called');
+	var r1 = $(rectone);
+	var r2 = $(recttwo);
+
+	var r1x = r1.offset().left;
+	var r1w = r1.width();
+	var r1y = r1.offset().top;
+	var r1h = r1.height();
+
+	var r2x = r2.offset().left;
+	var r2w = r2.width();
+	var r2y = r2.offset().top;
+	var r2h = r2.height();
+
+	if( r1y+r1h < r2y ||
+		r1y > r2y+r2h ||
+		r1x > r2x+r2w ||
+		r1x+r1w < r2x ){
+			//  console.log('recthit-false')
+			return false;
+		}else{
+			//console.log('recthit-true')
+			return true;
+		}
+
+	} //end recthit ()
+
+	function createEnemy () {
+		var enemy = $('<div>').addClass('enemy');
+		var randEnemy = Math.random();
+
+		if (randEnemy > .93) { //order is rarest to most common from top to bottom
+			enemy.addClass('police');
+			vehicleSpeed = 1200;
+		}else if(randEnemy > .8){
+			if(Math.random() > .5){
+				enemy.addClass('scar1')
+			}else{
+				enemy.addClass('scar2');
+			}
+			vehicleSpeed = 800;
+		}else if(randEnemy > .75){
+			enemy.addClass('taxi');
+			vehicleSpeed = 1500;
+		}else if(randEnemy > .55){
+			if(Math.random() > .5){
+				enemy.addClass('truck1')
+			}else{
+				enemy.addClass('truck2');
+			}
+			vehicleSpeed = 2000;
+		}else if(randEnemy>.35){
+			if(Math.random() > .5){
+				enemy.addClass('semi1')
+			}else{
+				enemy.addClass('semi2');
+			}
+			vehicleSpeed = 900;
+		}else{
+			if(Math.random() > .5){
+				enemy.addClass('car1')
+			}else{
+				enemy.addClass('car2');
+			}
+			vehicleSpeed = 1500;
+		}
+
+		vehicleSpeed = 1500; // global speed override
+		//starting location
+		var eLeft = stage.width() + 50
+		//var eTop = Math.random() * (stage.height()-50);
+		//var eTop = getRandInt(200,stage.height()-235-enemy.height());
+		var eTop = getRandInt(1,4);
+		switch (eTop) {
+			case 1:
+			eTop = 266;
+			break;
+
+			case 2:
+			eTop = 366;
+			break;
+
+			case 3:
+			eTop = 466;
+			break;
+
+			case 4:
+			eTop = 566;
+			break;
+
+			default:
+		}
+
+		enemy.css({top:eTop, left:eLeft});
+
+		stage.append(enemy);
+
+		enemy.animate({left:-250}, vehicleSpeed, "linear" , function(){
+			if($(this).position().left<-200){
+				$(this).remove();
+				score++;
+				$('.score').text(score);
+			}
+		})
+
+	} //end createEnemy ()
+
+	function gameOver (){
+		clearInterval(createEnemyInt);
+		$('.enemy').stop(true).remove(); //removes all enemies
+		//$(document).off(); //removes event listeners attached to the document
+		gameRunning = false;
+		//theLoop = null; //tells browser to forget this variable
+		$('#stage').css({'background-color': '#000'})
+		$('#road, .score').hide();
+		$('#road').destroy();
+		$('.intro').show().html('<h1>You Crashed.</h1><div class="button again">Play Again</div><p>Your score was ' + score +'</p>');
+		$('.again').click( function(){
+			//location.reload();
+			startGame();
+
+		});
+
+	} //end gameOver ()
+
+	function getRandInt(min,max){
+
+		return Math.round(Math.random()*(max-min))+min;
+
+	} //end getRandInt ()
+
+
+
+	</script>
+</body>
+</html>
